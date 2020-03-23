@@ -224,3 +224,103 @@ $ sudo /usr/bin/dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock --c
 89. image/context, docerfile
 
 90. docker-compose up --scale web=3 -d
+
+91. docker swarm
+```
+swarm manager (node1): 157.230.169.141
+swarm worker1 (node2): 157.230.166.146
+swarm worker2 (node3): 165.22.185.94
+```
+92. 
+On node1:
+```
+docker swarm init --advertise-addr=157.230.169.141
+```
+Then on node1 should see:
+```
+zhe@node1:~$ docker swarm init --advertise-addr=157.230.169.141
+Swarm initialized: current node (hwfpxo1fs4nk4u7kx5fv8gl1x) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-3keqoemrs23v15wmsfp6kx8kjjmadtqzcc9liij6u8mga3sxaw-7ftnvcd4xzls5m9k6j0bkvqrw 157.230.169.141:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+```
+
+Then on node2/node3, paste the cmd ^ from node1, should see 
+```
+zhe@node2:~$ docker swarm join --token SWMTKN-1-3keqoemrs23v15wmsfp6kx8kjjmadtqzcc9liij6u8mga3sxaw-7ftnvcd4xzls5m9k6j0bkvqrw 157.230.169.141:2377
+This node joined a swarm as a worker.
+
+zhe@node3:~$ docker swarm join --token SWMTKN-1-3keqoemrs23v15wmsfp6kx8kjjmadtqzcc9liij6u8mga3sxaw-7ftnvcd4xzls5m9k6j0bkvqrw 157.230.169.141:2377
+This node joined a swarm as a worker.
+```
+
+Then on node1, check swarm cluster status:
+```
+zhe@node1:~$ docker node ls
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+hwfpxo1fs4nk4u7kx5fv8gl1x *   node1               Ready               Active              Leader              18.09.6
+0m1ia6o9v9g4gai9cjxmjn8ca     node2               Ready               Active                                  19.03.2
+p9t0edgv019816mhzrejwbu5h     node3               Ready               Active                                  19.03.2
+```
+
+To leave swarm cluster, just run `docker swarm leave`
+
+93. 在swarm集群之上就可以用`docker service create`来创建服务了
+
+94. 在swarm manager上运行`docker service create --name demo busybox sh -c "while true; do sleep 3600; done"`, should see
+```
+zhe@node1:~$ docker service create --name demo busybox sh -c "while true; do sleep 3600; done"
+2i503jaxgkjwj7iw9453nnu6b
+overall progress: 1 out of 1 tasks
+1/1: running   [==================================================>]
+verify: Service converged
+
+zhe@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+2i503jaxgkjw        demo                replicated          1/1                 busybox:latest
+
+zhe@node1:~$ docker service ps demo
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS
+0t73zls9lvs7        demo.1              busybox:latest      node1               Running             Running about a minute ago
+
+zhe@node1:~$ docker ps
+CONTAINER ID        IMAGE                  COMMAND                  CREATED             STATUS              PORTS               NAMES
+f56c58c274ce        busybox:latest         "sh -c 'while true; …"   2 minutes ago       Up 2 minutes                            demo.1.0t73zls9lvs7x1hos62s7f0lw
+```
+
+95. 水平扩展服务: `docker service scale demo=5`
+
+```
+zhe@node1:~$ docker service scale demo=5
+demo scaled to 5
+overall progress: 5 out of 5 tasks
+1/5: running   [==================================================>]
+2/5: running   [==================================================>]
+3/5: running   [==================================================>]
+4/5: running   [==================================================>]
+5/5: running   [==================================================>]
+verify: Service converged
+
+zhe@node1:~$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+2i503jaxgkjw        demo                replicated          5/5                 busybox:latest
+
+zhe@node1:~$ docker service ps demo
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+0t73zls9lvs7        demo.1              busybox:latest      node1               Running             Running 4 minutes ago
+xgle072anlyt        demo.2              busybox:latest      node3               Running             Running 48 seconds ago
+srs5su8mwhft        demo.3              busybox:latest      node1               Running             Running 51 seconds ago
+fjnhfq6l2no1        demo.4              busybox:latest      node2               Running             Running 49 seconds ago
+982dtwsqevxw        demo.5              busybox:latest      node3               Running             Running 47 seconds ago
+```
+
+96. 删除服务: `docker service rm demo`
+
+```
+zhe@node1:~$ docker service ps demo
+no such service: demo
+```
+
