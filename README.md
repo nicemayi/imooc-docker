@@ -117,3 +117,110 @@ Host Network
 None Network
 多机
 Overlay Network
+
+56. wireshark抓包工具
+
+57. network namespace
+
+58. ip netns list; ip netns add test1
+
+59. ip netns exec test1 ip link set dev lo up
+
+60. Docker bridge0
+
+61. docker network ls
+
+62. docker network inspect <network id>
+
+63. 容器互联就是分别通过veth pair都连接到docker0网桥上
+
+64. 容器连接外网：网桥通过NAT（网络地址转换，通过iptables）连接到eth0
+
+65. docker run -d --name test2 --link test1 busybox /bin/sh -c "while true; do sleep 3600; done"
+然后在test2中可以直接ping test1，或者比如数据库mysql test1
+
+66. 注意link是有方向的，其实用处不大，使用docker compose
+
+67. docker可以创建bridge
+
+68. docker network create -d bridge my-bridge
+
+69. docker run -d --name test3 --network my-bridge busybox /bin/sh -c "while true; do sleep 3600; done"
+
+70. docker network connect my-bridge test1 #可以连接一个container to network （有记忆性的，相当于改了container的设置）
+
+71. 端口转发 <宿主port>:<容器port>
+
+72. none网络表示谁都不能访问的网络（用处未知）
+
+73. host网络就表示完全使用主机的网络（表示容器没有自己的network namespace），可能端口有冲突 --network host
+
+74. docker run --name flaskredisdemo0 -p 5000:5000 --link redis -e REDIS_HOST=redis -v /Users/zwang/Documents/imooc-docker/flaskdocker/flask-demo/:/app flaskredisdemo
+
+docker run \
+    --name flaskredisdemo0 \
+    --port 5000:5000 \
+    --link redis \
+    --env REDIS_HOST=redis \
+    --volume /Users/zwang/Documents/imooc-docker/flaskdocker/flask-demo/:/app \
+    flaskredisdemo
+
+75. docker run --help
+
+76. node1 157.230.169.141, node2 157.230.166.146
+
+77. VXLAN, underlay & overlay
+
+78. 分布式存储etcd
+
+79.
+node1
+nohup ./etcd --name docker-node1 --initial-advertise-peer-urls http://157.230.169.141:2380 \
+--listen-peer-urls http://157.230.169.141:2380 \
+--listen-client-urls http://157.230.169.141:2379,http://127.0.0.1:2379 \
+--advertise-client-urls http://157.230.169.141:2379 \
+--initial-cluster-token etcd-cluster \
+--initial-cluster docker-node1=http://157.230.169.141:2380,docker-node2=http://157.230.166.146:2380 \
+--initial-cluster-state new&
+
+node2
+nohup ./etcd --name docker-node2 --initial-advertise-peer-urls http://157.230.166.146:2380 \
+--listen-peer-urls http://157.230.166.146:2380 \
+--listen-client-urls http://157.230.166.146:2379,http://127.0.0.1:2379 \
+--advertise-client-urls http://157.230.166.146:2379 \
+--initial-cluster-token etcd-cluster \
+--initial-cluster docker-node1=http://157.230.169.141:2380,docker-node2=http://157.230.166.146:2380 \
+--initial-cluster-state new&
+
+./etcdctl cluster-health
+
+80. 需要手动指定docker集群
+
+在docker-node1上
+
+```
+$ sudo service docker stop
+$ sudo /usr/bin/dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock --cluster-store=etcd://192.168.205.10:2379 --cluster-advertise=192.168.205.10:2375&
+```
+
+即启动docker服务的时候指定etcd的cluster即可，所以之后在本地的所有的操作，就会通过overlay同步到云上的另一台机器上
+
+81. docker volume是利用docker自己创建的一个目录
+
+82. docker run -d -v mysql:/var/lib/mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=true --name mysqldemo1 mysql
+
+83. COPY是一次性的拷贝到image里面，而bind mount是实时的sym link到image中
+
+84. docker compose: services, networks, volumes (都是复数) version 3可以用在多机，version 2只能用在单机
+
+85. docker-compose -f docker-compose.yml up -d
+
+86. docker-compose -f ./coding-189/chapter6/labs/wordpress/docker-compose.yml ps
+
+87. docker-compose -f ./coding-189/chapter6/labs/wordpress/docker-compose.yml images
+
+88. docker-compose -f ./coding-189/chapter6/labs/wordpress/docker-compose.yml exec mysql bash
+
+89. image/context, docerfile
+
+90. docker-compose up --scale web=3 -d
