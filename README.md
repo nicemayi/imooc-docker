@@ -324,3 +324,79 @@ zhe@node1:~$ docker service ps demo
 no such service: demo
 ```
 
+97. docker network create -d overlay demo 创建一个网络
+
+98. MySQL service
+```
+docker service create \
+    --name mysql \
+    --env MYSQL_ROOT_PASSWORD=root \
+    --env MYSQL_DATABASE=wordpress \
+    --network demo \
+    --mount type=volume,source=mysql-data,destination=/var/lib/mysql \
+    mysql:5.7
+
+# 注意mysql必须是5.7的
+
+docker service ps mysql
+```
+
+99. WordPress service
+```
+docker service create \
+    --name wordpress \
+    -p 80:80 \
+    --env WORDPRESS_DB_PASSWORD=root \
+    --env WORDPRESS_DB_HOST=mysql \
+    --network demo \
+    wordpress
+```
+输入谁的地址都可以！！！
+
+100. docker swarm内置DNS服务发现
+
+101. Routing Mesh -> Internal, Ingress (指的是即使某个服务只在某个节点上，访问集群也能访问到这个服务！！！)\
+
+102. DNS + VIP + iptables + LVS (负载均衡)
+
+103. docker stack, version 3增加了deploy命令，可以deploy docker-compose.yml
+
+104.
+```
+docker stack deploy wordpress --compose-file=docker-compose.yml
+```
+
+```
+zhe@node1:~$ docker stack ps wordpress
+ID                  NAME                                        IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS
+qk1u82ltozq9        wordpress_mysql.hwfpxo1fs4nk4u7kx5fv8gl1x   mysql:5.7           node1               Running             Running 2 minutes ago
+lwmijejyrh3f        wordpress_web.1                             wordpress:latest    node3               Running             Running about a minute ago
+dxods61aomad        wordpress_web.2                             wordpress:latest    node1               Running             Running about a minute ago
+qyciukyou6y8        wordpress_web.3                             wordpress:latest    node2               Running             Running about a minute ago
+```
+
+105. 查看log `docker service logs --tail=all --since=0 wordpress_web`
+
+106. docker stack rm wordpress 停止服务
+
+107. doceker secret management
+
+108. 在service中只要使用 --secret <my-pw>就可以使用了 (在container的/run/secrets/my-pw文字中会有明文)
+
+109. 在compose文件中
+```
+  mysql:
+    image: mysql
+    secrets:
+      - my-pw # 事先创建好的
+
+或者
+    secrets:
+        my-pw:
+            file: ./password
+```
+
+110. service更新
+```
+docker service update --image <newimage> web # 滚动更新
+```
